@@ -1,0 +1,232 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userExists() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function role() {
+      return userExists() ? userDoc().data.role : '';
+    }
+
+    function isAdmin() {
+      return role() == 'admin';
+    }
+
+    function isTeacher() {
+      return role() == 'teacher' || isAdmin();
+    }
+
+    function isStudent() {
+      return role() == 'student';
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function assignmentExists(examId, studentId) {
+      return exists(/databases/$(database)/documents/exam_assignments/$(examId + '_' + studentId));
+    }
+
+    function isAssigned(examId) {
+      return isStudent() && assignmentExists(examId, request.auth.uid);
+    }
+
+    function publicationGate(examId) {
+      return get(/databases/$(database)/documents/publications/$(examId + '_' + request.auth.uid));
+    }
+
+    function resultPublished(examId) {
+      return isStudent()
+        && exists(/databases/$(database)/documents/publications/$(examId + '_' + request.auth.uid));
+    }
+
+    function explanationOpen(examId) {
+      return resultPublished(examId)
+        && publicationGate(examId).data.revealAtMs <= request.time.toMillis();
+    }
+
+    function changedKeysOnly(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    function teacherWrite() {
+      return isTeacher();
+    }
+
+    match /users/{uid} {
+      allow read: if isAdmin() || isOwner(uid) || (isTeacher() && resource.data.role == 'student');
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /teachers/{id} {
+      allow read: if isTeacher();
+      allow write: if isAdmin();
+    }
+
+    match /students/{id} {
+      allow read: if isTeacher() || (isStudent() && isOwner(resource.data.uid));
+      allow write: if isAdmin();
+    }
+
+    match /classes/{id} {
+      allow read: if isTeacher() || (isStudent() && resource.data.active == true);
+      allow write: if isAdmin();
+    }
+
+    match /subjects/{id} {
+      allow read: if signedIn() && resource.data.active == true;
+      allow write: if isAdmin();
+    }
+
+    match /academic_years/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /enrollments/{id} {
+      allow read: if isTeacher() || (isStudent() && isOwner(resource.data.studentId));
+      allow write: if isAdmin();
+    }
+
+    match /learning_objectives/{id} {
+      allow read: if isTeacher() || (isStudent() && resource.data.active == true);
+      allow write: if isTeacher();
+    }
+
+    match /question_banks/{id} {
+      allow read: if isTeacher();
+      allow write: if isTeacher();
+    }
+
+    // Kunci jawaban dan pembahasan guru tidak pernah dapat dibaca siswa.
+    match /questions/{id} {
+      allow read: if isTeacher();
+      allow write: if isTeacher();
+    }
+
+    match /exams/{examId} {
+      allow read: if isTeacher() || isAssigned(examId);
+      allow create: if isTeacher();
+      allow update, delete: if isAdmin() || (isTeacher() && resource.data.teacherId == request.auth.uid);
+    }
+
+    match /exam_questions/{id} {
+      allow read: if isTeacher();
+      allow write: if isTeacher();
+    }
+
+    // Salinan soal untuk siswa: tanpa kunci jawaban.
+    match /student_questions/{id} {
+      allow read: if isTeacher() || isAssigned(resource.data.examId);
+      allow write: if isTeacher();
+    }
+
+    // Pembahasan hanya terbuka setelah hasil dipublikasikan gate per siswa.
+    match /student_explanations/{id} {
+      allow read: if isTeacher() || explanationOpen(resource.data.examId);
+      allow write: if isTeacher();
+    }
+
+    match /exam_assignments/{id} {
+      allow read: if isTeacher() || (isStudent() && isOwner(resource.data.studentId));
+      allow create, update, delete: if isTeacher();
+    }
+
+    match /exam_attempts/{id} {
+      allow read: if isTeacher() || (isStudent() && isOwner(resource.data.studentId));
+      allow create: if isStudent()
+        && isOwner(request.resource.data.studentId)
+        && isAssigned(request.resource.data.examId)
+        && request.resource.data.status == 'in_progress'
+        && request.resource.data.attemptNumber is number
+        && request.resource.data.attemptNumber >= 1;
+      allow update: if isTeacher() || (
+        isStudent()
+        && isOwner(resource.data.studentId)
+        && isOwner(request.resource.data.studentId)
+        && (
+          (
+            resource.data.status == 'in_progress'
+            && request.resource.data.status == 'in_progress'
+            && changedKeysOnly(['currentQuestionIndex', 'flaggedQuestionIds', 'lastSyncedAt', 'timeSpentSeconds'])
+          ) || (
+            resource.data.status == 'in_progress'
+            && request.resource.data.status == 'submitted'
+            && request.resource.data.submittedAt is string
+            && changedKeysOnly(['status', 'submittedAt', 'finishedAt', 'lastSyncedAt', 'updatedAt', 'updatedBy'])
+          )
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /exam_answers/{id} {
+      allow read: if isTeacher() || (isStudent() && isOwner(resource.data.studentId));
+      allow create: if isStudent()
+        && isOwner(request.resource.data.studentId)
+        && request.resource.data.answer is list
+        && request.resource.data.attemptId is string
+        && exists(/databases/$(database)/documents/exam_attempts/$(request.resource.data.attemptId))
+        && get(/databases/$(database)/documents/exam_attempts/$(request.resource.data.attemptId)).data.status == 'in_progress'
+        && get(/databases/$(database)/documents/exam_attempts/$(request.resource.data.attemptId)).data.studentId == request.auth.uid;
+      allow update: if isStudent()
+        && isOwner(resource.data.studentId)
+        && isOwner(request.resource.data.studentId)
+        && get(/databases/$(database)/documents/exam_attempts/$(resource.data.attemptId)).data.status == 'in_progress'
+        && changedKeysOnly(['answer', 'markedForReview', 'answeredAt', 'updatedAtClient', 'updatedAt', 'updatedBy', 'synced']);
+      allow delete: if isAdmin();
+    }
+
+    match /exam_results/{id} {
+      allow read: if isTeacher() || (isStudent() && isOwner(resource.data.studentId) && resultPublished(resource.data.examId));
+      allow write: if isTeacher();
+    }
+
+    match /publications/{id} {
+      allow read: if isTeacher() || (isStudent() && isOwner(resource.data.studentId));
+      allow write: if isTeacher();
+    }
+
+    match /item_analyses/{id} {
+      allow read: if isTeacher();
+      allow write: if isTeacher();
+    }
+
+    match /student_analyses/{id} {
+      allow read: if isTeacher() || (isStudent() && isOwner(resource.data.studentId));
+      allow write: if isTeacher();
+    }
+
+    match /media_assets/{id} {
+      allow read: if signedIn();
+      allow write: if isTeacher();
+    }
+
+    match /app_settings/{id} {
+      allow read: if isTeacher() || resource.data.key == 'public';
+      allow write: if isAdmin();
+    }
+
+    match /audit_logs/{id} {
+      allow read: if isAdmin();
+      allow create: if isTeacher() && isOwner(request.resource.data.actorId);
+      allow update, delete: if false;
+    }
+
+    // Kredensial lokal hanya dipakai Mode Lokal (IndexedDB), bukan Firestore.
+    match /credentials/{id} {
+      allow read, write: if false;
+    }
+  }
+}

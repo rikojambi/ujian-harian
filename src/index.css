@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root { color-scheme: light; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-slate-50 text-navy-900 antialiased;
+    margin: 0;
+    min-height: 100vh;
+  }
+  * { -webkit-tap-highlight-color: transparent; }
+  input, select, textarea, button { font: inherit; }
+}
+
+@layer components {
+  .card { @apply rounded-2xl border border-slate-200 bg-white shadow-card; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-accent-500/40 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-accent-500 text-white hover:bg-accent-600; }
+  .btn-secondary { @apply btn border border-slate-300 bg-white text-navy-800 hover:bg-slate-50; }
+  .btn-danger { @apply btn bg-rose-600 text-white hover:bg-rose-700; }
+  .btn-ghost { @apply btn text-navy-700 hover:bg-slate-100; }
+  .input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-navy-900 placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/20; }
+  .label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500; }
+  .badge { @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold; }
+  .table { @apply w-full border-collapse text-left text-sm; }
+  .table th { @apply border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500; }
+  .table td { @apply border-b border-slate-100 px-4 py-3 align-middle; }
+  .table tr:last-child td { @apply border-b-0; }
+  .field-error { @apply mt-1 text-xs text-rose-600; }
+  .section-title { @apply text-lg font-bold text-navy-900; }
+  .link { @apply text-accent-600 hover:underline; }
+}
