@@ -1,4 +1,4 @@
-import { initAdmin, stamp, updated } from './lib/admin.mjs';
+import { initAdmin, setRoleClaim, stamp, updated } from './lib/admin.mjs';
 
 const email = process.env.BOOTSTRAP_ADMIN_EMAIL || 'admin@ujianharian.local';
 const password = process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Admin123!';
@@ -29,6 +29,7 @@ try {
     active: true,
     ...(created ? stamp('bootstrap') : updated('bootstrap'))
   }, { merge: true });
+  await setRoleClaim(auth, authUser.uid, 'admin');
 
   console.log(`Admin siap: ${email} (${authUser.uid})`);
   if (created) console.log(`Kata sandi awal: ${password}`);

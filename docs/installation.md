@@ -82,7 +82,7 @@ npm run users:create -- siswa@sekolah.sch.id Siswa123! "Nama Siswa" student KELA
 npm run users:list
 ```
 
-Peran dibaca dari dokumen `users/{uid}.role` oleh aturan Firestore. Jangan hanya membuat akun di Authentication tanpa dokumen `users`.
+`users:create` membuat akun Authentication, dokumen `users/{uid}`, dan custom claim `role` sekaligus. Aturan Firestore memakai claim bila tersedia dengan fallback ke dokumen `users`. Jangan hanya membuat akun di Authentication tanpa menjalankan skrip ini. Setelah `users:role`, pengguna perlu masuk ulang agar claim baru aktif.
 
 ### 3.4 Data contoh Firebase (opsional)
 

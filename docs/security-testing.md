@@ -53,7 +53,7 @@ Persyaratan:
 
 ## Catatan aturan Firestore
 
-- Peran dibaca dari `users/{uid}.role`, bukan custom claims. Jika peran diubah, perbarui dokumen `users`.
+- Peran dibaca dari custom claim `role` bila tersedia, dengan fallback ke `users/{uid}.role`. Skrip Admin SDK (`bootstrap:admin`, `users:create`, `users:role`) menulis keduanya. Setelah `users:role`, pengguna perlu masuk ulang agar claim baru aktif.
 - `publications/{examId}_{studentId}` harus memiliki `revealAtMs` berupa angka (milliseconds).
 - `exam_attempts` tidak boleh diubah siswa menjadi `published`; hanya status `in_progress → submitted` yang diizinkan.
 - Koleksi `credentials` ditutup total di aturan Firestore; kredensial lokal hanya untuk IndexedDB.

@@ -14,8 +14,14 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    function hasRoleClaim() {
+      return signedIn() && 'role' in request.auth.token;
+    }
+
     function role() {
-      return userExists() ? userDoc().data.role : '';
+      return hasRoleClaim()
+        ? request.auth.token.role
+        : (userExists() ? userDoc().data.role : '');
     }
 
     function isAdmin() {

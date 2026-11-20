@@ -48,6 +48,10 @@ export async function findUid(auth, identifier) {
   return (await auth.getUser(identifier)).uid;
 }
 
+export async function setRoleClaim(auth, uid, role) {
+  await auth.setCustomUserClaims(uid, { role });
+}
+
 export function requireArgs(args, count, usage) {
   if (args.length < count) {
     console.error(`Penggunaan: ${usage}`);

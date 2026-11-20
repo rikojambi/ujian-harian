@@ -1,9 +1,10 @@
-import { initAdmin, findUid, requireArgs, stamp, updated } from './lib/admin.mjs';
+import { initAdmin, findUid, requireArgs, setRoleClaim, stamp, updated } from './lib/admin.mjs';
 
 const [command, ...args] = process.argv.slice(2);
 const ROLES = new Set(['admin', 'teacher', 'student']);
 
-async function ensureRoleDoc(db, uid, role, profile, actorId) {
+async function ensureRoleDoc(auth, db, uid, role, profile, actorId) {
+  await setRoleClaim(auth, uid, role);
   const ref = db.collection('users').doc(uid);
   const snapshot = await ref.get();
   const base = {
@@ -38,7 +39,7 @@ async function createUser() {
   if (!ROLES.has(role)) throw new Error(`Peran tidak valid: ${role}`);
   const { auth, db } = initAdmin();
   const created = await auth.createUser({ email: email.trim(), password, displayName: name });
-  await ensureRoleDoc(db, created.uid, role, { email: email.trim(), name, classId, nis }, 'admin-script');
+  await ensureRoleDoc(auth, db, created.uid, role, { email: email.trim(), name, classId, nis }, 'admin-script');
   console.log(`Akun dibuat: ${created.uid} ${email} (${role})`);
   console.log('Bagikan kata sandi melalui kanal aman, lalu minta pengguna menggantinya.');
 }
@@ -65,8 +66,9 @@ async function changeRole() {
   const { auth, db } = initAdmin();
   const uid = await findUid(auth, identifier);
   const authUser = await auth.getUser(uid);
-  await ensureRoleDoc(db, uid, role, { email: authUser.email ?? '', name: authUser.displayName ?? authUser.email ?? uid }, 'admin-script');
-  console.log(`Peran ${uid} diperbarui menjadi ${role}.`);
+  await ensureRoleDoc(auth, db, uid, role, { email: authUser.email ?? '', name: authUser.displayName ?? authUser.email ?? uid }, 'admin-script');
+  console.log(`Peran ${uid} diperbarui menjadi ${role} di Firestore dan custom claim.`);
+  console.log('Pengguna perlu memuat ulang token/masuk kembali agar claim baru digunakan.');
 }
 
 async function changePassword() {
