@@ -84,6 +84,15 @@ npm run users:list
 
 `users:create` membuat akun Authentication, dokumen `users/{uid}`, dan custom claim `role` sekaligus. Aturan Firestore memakai claim bila tersedia dengan fallback ke dokumen `users`. Jangan hanya membuat akun di Authentication tanpa menjalankan skrip ini. Setelah `users:role`, pengguna perlu masuk ulang agar claim baru aktif.
 
+Alternatif lewat aplikasi (Netlify):
+
+- Halaman **Kelola Akun → Tambah akun** kini aktif di Mode Firebase.
+- Browser mengirim ID token admin ke `/.netlify/functions/admin-accounts`.
+- Function memverifikasi token, memastikan claim `role = admin` dan dokumen `users/{uid}.active = true`, lalu membuat Auth user, dokumen profil, dan custom claim dengan Admin SDK.
+- Set env var Netlify `FIREBASE_SERVICE_ACCOUNT_JSON` berisi seluruh JSON service account. Jangan pernah memakai variabel `VITE_*` untuk kredensial ini.
+
+Peran dan status akun masih dikelola lewat `users:role` / `users:disable` / `users:enable` dari CLI.
+
 Menonaktifkan/mengaktifkan akun:
 
 ```bash

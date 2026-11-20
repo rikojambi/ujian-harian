@@ -5,6 +5,7 @@ import { useCollection, useDebounce } from '@/hooks/useCollection';
 import { authService, digest } from '@/services/auth/service';
 import { db, isLocalMode } from '@/services/db';
 import { COLLECTIONS, createEntity, updateEntity } from '@/services/repository';
+import { createAccount } from '@/services/adminAccounts';
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Input, Loading, Modal, PageHeader, SearchInput, Select } from '@/components/ui';
 import { emailSchema, firstError, passwordSchema } from '@/utils/validation';
 import type { Role, SchoolClass, UserProfile } from '@/types';
@@ -54,7 +55,20 @@ export default function UsersPage() {
           }
         }
       } else {
-        if (!isLocalMode) throw new Error('Mode Firebase: buat akun melalui npm run users:create (Admin SDK).');
+        if (!isLocalMode) {
+          await createAccount({
+            email: form.email.trim(),
+            password: form.password,
+            name: form.name,
+            role: form.role,
+            classId: form.classId || undefined,
+            nis: form.nis || undefined
+          });
+          notify('Akun dibuat di Firebase.', 'success');
+          setOpen(false);
+          await users.refresh();
+          return;
+        }
         const created = await authService.signUp(form.email, form.password, form.name, form.role, false);
         authService.notifyLocalAuthChange();
         await db.update(COLLECTIONS.users, created.uid, { role: form.role, active: true, updatedBy: user?.uid ?? 'system' });
@@ -124,7 +138,7 @@ export default function UsersPage() {
               <option value="">— Pilih kelas —</option>{classes.data.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </Select>
           </>}
-          <p className="flex items-center gap-1 text-xs text-slate-500"><KeyRound className="h-4 w-4" /> {isLocalMode ? 'Mode lokal: akun dibuat pada penyimpanan perangkat.' : editing ? 'Firebase: hanya nama yang bisa diubah di sini. Peran dan kata sandi dikelola lewat Admin SDK.' : 'Firebase: gunakan npm run users:create (Admin SDK) untuk membuat akun produksi dan custom claim peran.'}</p>
+          <p className="flex items-center gap-1 text-xs text-slate-500"><KeyRound className="h-4 w-4" /> {isLocalMode ? 'Mode lokal: akun dibuat pada penyimpanan perangkat.' : editing ? 'Firebase: hanya nama yang bisa diubah di sini. Peran dan kata sandi dikelola lewat Admin SDK.' : 'Firebase: akun dibuat melalui Admin SDK di server dan custom claim peran ditetapkan otomatis.'}</p>
           {error && <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4"><Button variant="secondary" type="button" onClick={() => setOpen(false)}>Batal</Button><Button type="submit" loading={saving}>Simpan</Button></div>
         </form>

@@ -62,6 +62,8 @@ Untuk memakai Firebase, salin `.env.example` menjadi `.env`, isi konfigurasi web
 | `npm run check` | Unit test + rule test + build |
 | `npm run bootstrap:admin` | Membuat admin awal via Admin SDK |
 | `npm run users:create`, `users:list`, `users:role`, `users:password`, `users:disable`, `users:enable`, `users:delete` | Manajemen akun produksi via Admin SDK + custom claim `role` |
+
+Di Mode Firebase, akun juga bisa dibuat langsung dari halaman **Kelola Akun**. Aplikasi memanggil Netlify Function `admin-accounts` yang menjalankan Admin SDK di server; variabel `FIREBASE_SERVICE_ACCOUNT_JSON` wajib diatur di Netlify. Function memverifikasi ID token admin dan menolak akun nonaktif.
 | `npm run seed:firestore` | Data contoh Firebase (idempoten, hapus sebelum produksi) |
 | `npm run score` | Penilaian/analisis/publikasi tepercaya via Admin SDK |
 | `npm run backup:firestore`, `npm run restore:firestore` | Cadangan/pemulihan JSON Spark-friendly |
