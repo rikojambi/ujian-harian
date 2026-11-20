@@ -42,7 +42,9 @@ export default function UsersPage() {
     setSaving(true);
     try {
       if (editing) {
-        await updateEntity(COLLECTIONS.users, editing.id, { name: form.name, role: form.role, active: true }, user?.uid ?? 'system');
+        const patch: Record<string, unknown> = { name: form.name };
+        if (isLocalMode) patch.role = form.role;
+        await updateEntity(COLLECTIONS.users, editing.id, patch, user?.uid ?? 'system');
         if (form.password) {
           if (!isLocalMode) throw new Error('Pengubahan kata sandi Firebase harus dilakukan oleh pengguna yang bersangkutan.');
           const credentials = await db.list<{ id: string; salt: string }>('credentials', { filters: [{ field: 'uid', op: '==', value: editing.uid }] });
@@ -103,16 +105,26 @@ export default function UsersPage() {
           <Input label="Nama lengkap" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
           <Input label="Email" type="email" value={form.email} disabled={Boolean(editing)} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
           {!editing && <Input label="Kata sandi awal" type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} hint="Minimal 6 karakter" required />}
-          <Select label="Peran" value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}>
+          <Select
+            label="Peran"
+            value={form.role}
+            disabled={Boolean(editing) && !isLocalMode}
+            onChange={(event) => setForm({ ...form, role: event.target.value as Role })}
+          >
             <option value="student">Siswa</option><option value="teacher">Guru</option><option value="admin">Admin</option>
           </Select>
+          {editing && !isLocalMode && (
+            <p className="text-xs text-amber-700">
+              Mode Firebase: peran tidak bisa diubah di sini. Jalankan <code>npm run users:role -- {editing.email} &lt;peran&gt;</code>, lalu minta pengguna masuk ulang.
+            </p>
+          )}
           {form.role === 'student' && !editing && <>
             <Input label="NIS" value={form.nis} onChange={(event) => setForm({ ...form, nis: event.target.value })} />
             <Select label="Kelas" value={form.classId} onChange={(event) => setForm({ ...form, classId: event.target.value })}>
               <option value="">— Pilih kelas —</option>{classes.data.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </Select>
           </>}
-          <p className="flex items-center gap-1 text-xs text-slate-500"><KeyRound className="h-4 w-4" /> {isLocalMode ? 'Mode lokal: akun dibuat pada penyimpanan perangkat.' : 'Firebase: gunakan npm run users:create (Admin SDK) untuk membuat akun produksi dan custom claim peran.'}</p>
+          <p className="flex items-center gap-1 text-xs text-slate-500"><KeyRound className="h-4 w-4" /> {isLocalMode ? 'Mode lokal: akun dibuat pada penyimpanan perangkat.' : editing ? 'Firebase: hanya nama yang bisa diubah di sini. Peran dan kata sandi dikelola lewat Admin SDK.' : 'Firebase: gunakan npm run users:create (Admin SDK) untuk membuat akun produksi dan custom claim peran.'}</p>
           {error && <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4"><Button variant="secondary" type="button" onClick={() => setOpen(false)}>Batal</Button><Button type="submit" loading={saving}>Simpan</Button></div>
         </form>
