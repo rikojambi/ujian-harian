@@ -81,6 +81,22 @@ async function changePassword() {
   console.log(`Kata sandi ${uid} diperbarui.`);
 }
 
+async function setActive(active) {
+  const action = active ? 'enable' : 'disable';
+  requireArgs(args, 1, `npm run users:${action} -- <uid|email>`);
+  const { auth, db } = initAdmin();
+  const uid = await findUid(auth, args[0]);
+  await auth.updateUser(uid, { disabled: !active });
+  const ref = db.collection('users').doc(uid);
+  const snapshot = await ref.get();
+  await ref.set({
+    active,
+    ...(snapshot.exists ? updated('admin-script') : stamp('admin-script'))
+  }, { merge: true });
+  console.log(`Akun ${uid} ${active ? 'diaktifkan' : 'dinonaktifkan'} di Firebase Auth dan Firestore.`);
+  if (!active) console.log('Token lama tetap kehilangan akses Firestore pada permintaan berikutnya.');
+}
+
 async function deleteUser() {
   requireArgs(args, 1, 'npm run users:delete -- <uid|email>');
   const { auth, db } = initAdmin();
@@ -97,12 +113,14 @@ const handlers = {
   list: listUsers,
   role: changeRole,
   password: changePassword,
+  disable: () => setActive(false),
+  enable: () => setActive(true),
   delete: deleteUser
 };
 
 try {
   if (!handlers[command]) {
-    console.error('Perintah tersedia: create, list, role, password, delete');
+    console.error('Perintah tersedia: create, list, role, password, disable, enable, delete');
     process.exit(1);
   }
   await handlers[command]();

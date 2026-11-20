@@ -148,4 +148,15 @@ describe('Firestore security rules', () => {
     const stranger = env.authenticatedContext('tanpa-profil').firestore();
     await assertFails(getDoc(doc(stranger, 'exams/exam1')));
   });
+
+  it('akun nonaktif tidak mendapat akses meskipun punya claim peran', async () => {
+    await seed();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), 'users/student1'), { active: false });
+    });
+    const inactive = env.authenticatedContext('student1', { role: 'student' }).firestore();
+    await assertFails(getDoc(doc(inactive, 'exams/exam1')));
+    await assertFails(getDoc(doc(inactive, 'academic_years/th-2026-2027')));
+    await assertFails(getDoc(doc(inactive, 'users/student1')));
+  });
 });

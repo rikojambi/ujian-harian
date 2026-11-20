@@ -84,6 +84,15 @@ npm run users:list
 
 `users:create` membuat akun Authentication, dokumen `users/{uid}`, dan custom claim `role` sekaligus. Aturan Firestore memakai claim bila tersedia dengan fallback ke dokumen `users`. Jangan hanya membuat akun di Authentication tanpa menjalankan skrip ini. Setelah `users:role`, pengguna perlu masuk ulang agar claim baru aktif.
 
+Menonaktifkan/mengaktifkan akun:
+
+```bash
+npm run users:disable -- siswa@sekolah.sch.id
+npm run users:enable -- siswa@sekolah.sch.id
+```
+
+`users:disable` menandai akun sebagai `disabled` di Firebase Auth dan menulis `active: false` di `users/{uid}`. Login diblokir, dan aturan Firestore langsung menolak akses meskipun token lama masih berlaku. Karena itu, tombol nonaktif di halaman Kelola Akun sengaja tidak melakukan apa pun dalam Mode Firebase — aplikasi menampilkan perintah yang harus dijalankan lewat Admin SDK.
+
 ### 3.4 Data contoh Firebase (opsional)
 
 ```bash

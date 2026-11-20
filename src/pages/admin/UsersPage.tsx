@@ -129,17 +129,31 @@ export default function UsersPage() {
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4"><Button variant="secondary" type="button" onClick={() => setOpen(false)}>Batal</Button><Button type="submit" loading={saving}>Simpan</Button></div>
         </form>
       </Modal>
-      <ConfirmDialog open={Boolean(deleting)} title="Hapus akun" message={`Hapus akun ${deleting?.name}? Data historis ujian tetap disimpan.`} onClose={() => setDeleting(null)} loading={saving} onConfirm={async () => {
-        if (!deleting) return;
-        setSaving(true);
-        try {
-          await db.update(COLLECTIONS.users, deleting.id, { active: false });
-          notify('Akun dinonaktifkan.', 'success');
-          setDeleting(null);
-          await users.refresh();
-        } catch (caught) { notify(caught instanceof Error ? caught.message : 'Gagal menonaktifkan akun.', 'error'); }
-        finally { setSaving(false); }
-      }} confirmLabel="Nonaktifkan" />
+      {deleting && !isLocalMode && (
+        <Modal open title="Nonaktifkan akun produksi" onClose={() => setDeleting(null)}>
+          <p className="text-sm leading-relaxed text-slate-600">
+            Akun <strong>{deleting.email}</strong> tidak bisa dinonaktifkan dari browser. Jalankan di komputer yang memiliki service account Firebase:
+          </p>
+          <code className="mt-3 block rounded-xl bg-slate-100 p-3 text-xs text-slate-800">npm run users:disable -- {deleting.email}</code>
+          <p className="mt-3 text-xs text-slate-500">
+            Perintah ini memblokir login Firebase Auth dan mencabut akses Firestore seketika, termasuk token yang masih aktif. Untuk mengaktifkan lagi: <code>npm run users:enable -- {deleting.email}</code>
+          </p>
+          <div className="mt-6 flex justify-end"><Button variant="secondary" onClick={() => setDeleting(null)}>Tutup</Button></div>
+        </Modal>
+      )}
+      {isLocalMode && (
+        <ConfirmDialog open={Boolean(deleting)} title="Nonaktifkan akun" message={`Nonaktifkan akun ${deleting?.name}? Data historis ujian tetap disimpan.`} onClose={() => setDeleting(null)} loading={saving} onConfirm={async () => {
+          if (!deleting) return;
+          setSaving(true);
+          try {
+            await db.update(COLLECTIONS.users, deleting.id, { active: false });
+            notify('Akun dinonaktifkan.', 'success');
+            setDeleting(null);
+            await users.refresh();
+          } catch (caught) { notify(caught instanceof Error ? caught.message : 'Gagal menonaktifkan akun.', 'error'); }
+          finally { setSaving(false); }
+        }} confirmLabel="Nonaktifkan" />
+      )}
     </div>
   );
 }

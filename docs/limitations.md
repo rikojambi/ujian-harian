@@ -34,7 +34,7 @@
 
 ## Keamanan
 
-- Aturan Firestore memakai custom claim `role` bila ada, dengan fallback ke dokumen `users/{uid}`. Keduanya ditulis oleh skrip Admin SDK; peran yang diubah lewat konsol tanpa claim bisa tertunda hingga token pengguna diperbarui.
+- Aturan Firestore memakai custom claim `role` bila ada, dengan fallback ke dokumen `users/{uid}`. Keduanya ditulis oleh skrip Admin SDK; peran yang diubah lewat konsol tanpa claim bisa tertunda hingga token pengguna diperbarui. Akun nonaktif (`active != true`) selalu ditolak meskipun claim masih ada.
 - Siswa tidak boleh memiliki akses tulis ke `exam_results`, `item_analyses`, `publications`, `questions`, atau `student_explanations`.
 - Jangan menaruh kunci layanan Firebase di variabel `VITE_*`.
 - Data contoh bersifat publik dan kata sandinya diketahui; hapus sebelum produksi.

@@ -14,14 +14,18 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    function isActiveUser() {
+      return userExists() && userDoc().data.active == true;
+    }
+
     function hasRoleClaim() {
       return signedIn() && 'role' in request.auth.token;
     }
 
     function role() {
-      return hasRoleClaim()
-        ? request.auth.token.role
-        : (userExists() ? userDoc().data.role : '');
+      return isActiveUser()
+        ? (hasRoleClaim() ? request.auth.token.role : userDoc().data.role)
+        : '';
     }
 
     function isAdmin() {
@@ -37,7 +41,7 @@ service cloud.firestore {
     }
 
     function isOwner(uid) {
-      return signedIn() && request.auth.uid == uid;
+      return isActiveUser() && request.auth.uid == uid;
     }
 
     function assignmentExists(examId, studentId) {
@@ -91,12 +95,12 @@ service cloud.firestore {
     }
 
     match /subjects/{id} {
-      allow read: if signedIn() && resource.data.active == true;
+      allow read: if isActiveUser() && resource.data.active == true;
       allow write: if isAdmin();
     }
 
     match /academic_years/{id} {
-      allow read: if signedIn();
+      allow read: if isActiveUser();
       allow write: if isAdmin();
     }
 
@@ -215,7 +219,7 @@ service cloud.firestore {
     }
 
     match /media_assets/{id} {
-      allow read: if signedIn();
+      allow read: if isActiveUser();
       allow write: if isTeacher();
     }
 

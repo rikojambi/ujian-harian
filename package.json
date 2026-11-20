@@ -16,6 +16,8 @@
     "users:list": "node scripts/manage-users.mjs list",
     "users:role": "node scripts/manage-users.mjs role",
     "users:password": "node scripts/manage-users.mjs password",
+    "users:disable": "node scripts/manage-users.mjs disable",
+    "users:enable": "node scripts/manage-users.mjs enable",
     "users:delete": "node scripts/manage-users.mjs delete",
     "seed:firestore": "node scripts/seed-firestore.mjs",
     "backup:firestore": "node scripts/backup-firestore.mjs",
